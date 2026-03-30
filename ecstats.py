@@ -473,29 +473,20 @@ def get_reserved_instances_info(wb, clusters_info):
 
 def process_aws_account(config, section, outDir):
     # Check if credentials are provided in the config file
-    if config.has_option(section, "aws_access_key_id") and config.has_option(
-        section, "aws_secret_access_key"
-    ):
-        aws_access_key_id = config.get(section, "aws_access_key_id")
-        aws_secret_access_key = config.get(section, "aws_secret_access_key")
-        region_name = config.get(section, "region_name")
+    region_name = config.get(section, "region_name")
 
-        if config.has_option(section, "aws_session_token"):
-            aws_session_token = config.get(section, "aws_session_token")
-        else:
-            aws_session_token = None
-
-        # Create session with credentials
-        session = boto3.Session(
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-            aws_session_token=aws_session_token,
-            region_name=region_name,
-        )
+    if config.has_option(section, "profile_name"):
+        profile_name = config.get(section, "profile_name")
+        session = boto3.Session(profile_name=profile_name, region_name=region_name)
     else:
-        # No credentials in config file, rely on instance profile credentials
-        region_name = config.get(section, "region_name")
         session = boto3.Session(region_name=region_name)
+
+    sts = session.client("sts")
+    identity = sts.get_caller_identity()
+    print(f"Using AWS identity: {identity['Arn']}")
+
+    print(f"Requesting information for the {section} nodes")
+    clusters_info = get_clusters_info(session)
 
     print(f"Requesting information for the {section} nodes")
     clusters_info = get_clusters_info(session)
@@ -533,7 +524,7 @@ def main():
         metavar="PATH",
     )
 
-    (options, _) = parser.parse_args()
+    options, _ = parser.parse_args()
 
     if not os.path.isdir(options.outDir):
         os.makedirs(options.outDir)
