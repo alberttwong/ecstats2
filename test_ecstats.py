@@ -504,13 +504,13 @@ class TestIntegration:
                 mock_elasticache_client = Mock()
                 mock_cloudwatch_client = Mock()
                 mock_sts_client = Mock()
-                
+
                 mock_sts_client.get_caller_identity.return_value = {
                     "UserId": "test-user",
                     "Account": "123456789012",
                     "Arn": "arn:aws:sts::123456789012:assumed-role/TestRole/test-session",
                 }
-                
+
                 def client_side_effect(service_name):
                     if service_name == "elasticache":
                         return mock_elasticache_client
@@ -519,9 +519,6 @@ class TestIntegration:
                     elif service_name == "sts":
                         return mock_sts_client
                     return Mock()
-
-                
-
 
                 mock_session_instance.client.side_effect = client_side_effect
 
