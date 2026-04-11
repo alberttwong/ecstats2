@@ -472,14 +472,25 @@ def get_reserved_instances_info(wb, clusters_info):
 
 
 def process_aws_account(config, section, outDir):
-    # Check if credentials are provided in the config file
     region_name = config.get(section, "region_name")
+    session_kwargs = {"region_name": region_name}
 
-    if config.has_option(section, "profile_name"):
-        profile_name = config.get(section, "profile_name")
-        session = boto3.Session(profile_name=profile_name, region_name=region_name)
-    else:
-        session = boto3.Session(region_name=region_name)
+    # Prefer explicit credentials from config.ini when present.
+    if config.has_option(section, "aws_access_key_id") and config.has_option(
+        section, "aws_secret_access_key"
+    ):
+        session_kwargs["aws_access_key_id"] = config.get(section, "aws_access_key_id")
+        session_kwargs["aws_secret_access_key"] = config.get(
+            section, "aws_secret_access_key"
+        )
+        if config.has_option(section, "aws_session_token"):
+            session_kwargs["aws_session_token"] = config.get(
+                section, "aws_session_token"
+            )
+    elif config.has_option(section, "profile_name"):
+        session_kwargs["profile_name"] = config.get(section, "profile_name")
+
+    session = boto3.Session(**session_kwargs)
 
     sts = session.client("sts")
     identity = sts.get_caller_identity()
